@@ -99,6 +99,7 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 	 * If not, an exception will be thrown. Default is "true".
 	 * @see org.springframework.beans.factory.support.DefaultListableBeanFactory#setAllowBeanDefinitionOverriding
 	 */
+	//设置当前容器是否允许bean定义覆写，默认为true
 	public void setAllowBeanDefinitionOverriding(boolean allowBeanDefinitionOverriding) {
 		this.allowBeanDefinitionOverriding = allowBeanDefinitionOverriding;
 	}
@@ -110,6 +111,7 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 	 * a circular reference, disallowing them completely.
 	 * @see org.springframework.beans.factory.support.DefaultListableBeanFactory#setAllowCircularReferences
 	 */
+	//设置当前容器是否支持循环依赖
 	public void setAllowCircularReferences(boolean allowCircularReferences) {
 		this.allowCircularReferences = allowCircularReferences;
 	}
@@ -122,13 +124,20 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 	 */
 	@Override
 	protected final void refreshBeanFactory() throws BeansException {
+		//如果已经有容器，销毁容器中的bean，关闭容器
 		if (hasBeanFactory()) {
+			//销毁bean实例，主要包括存放bean实例的各种map都清空
 			destroyBeans();
+			//将beanFactory置为null，被gc回收
 			closeBeanFactory();
 		}
 		try {
+			//创建新的bean工厂
 			DefaultListableBeanFactory beanFactory = createBeanFactory();
+			//生成并设置bean工厂的序列化Id
 			beanFactory.setSerializationId(getId());
+			//检查是否需要定制化bean工厂
+			// 可以定制Bean是否可以允许被覆盖和允许循环依赖
 			customizeBeanFactory(beanFactory);
 			loadBeanDefinitions(beanFactory);
 			synchronized (this.beanFactoryMonitor) {
@@ -150,6 +159,7 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 		super.cancelRefresh(ex);
 	}
 
+	//将beanFactory置为null，被gc回收
 	@Override
 	protected final void closeBeanFactory() {
 		synchronized (this.beanFactoryMonitor) {
@@ -221,6 +231,7 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 	 * @see DefaultListableBeanFactory#setAllowRawInjectionDespiteWrapping
 	 * @see DefaultListableBeanFactory#setAllowEagerClassLoading
 	 */
+	//定制化bean工厂，检查是否有定制化bean定义覆写和循环依赖
 	protected void customizeBeanFactory(DefaultListableBeanFactory beanFactory) {
 		if (this.allowBeanDefinitionOverriding != null) {
 			beanFactory.setAllowBeanDefinitionOverriding(this.allowBeanDefinitionOverriding);

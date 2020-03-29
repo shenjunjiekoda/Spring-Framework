@@ -81,6 +81,7 @@ abstract class ConfigurationClassUtils {
 	 * @param metadataReaderFactory the current factory in use by the caller
 	 * @return whether the candidate qualifies as (any kind of) configuration class
 	 */
+	//检查是否是加了@Configuration的注解的候选配置类
 	public static boolean checkConfigurationClassCandidate(
 			BeanDefinition beanDef, MetadataReaderFactory metadataReaderFactory) {
 
@@ -89,6 +90,7 @@ abstract class ConfigurationClassUtils {
 			return false;
 		}
 
+		//获取类中注解元信息
 		AnnotationMetadata metadata;
 		if (beanDef instanceof AnnotatedBeanDefinition &&
 				className.equals(((AnnotatedBeanDefinition) beanDef).getMetadata().getClassName())) {
@@ -120,8 +122,9 @@ abstract class ConfigurationClassUtils {
 				return false;
 			}
 		}
-
+		//获得注解Configuration的值，开始检查属性值判断是否是候选类
 		Map<String, Object> config = metadata.getAnnotationAttributes(Configuration.class.getName());
+		//根据Configuration类的proxyBeanMethods设置bean定义的配置类属性
 		if (config != null && !Boolean.FALSE.equals(config.get("proxyBeanMethods"))) {
 			beanDef.setAttribute(CONFIGURATION_CLASS_ATTRIBUTE, CONFIGURATION_CLASS_FULL);
 		}
@@ -132,6 +135,7 @@ abstract class ConfigurationClassUtils {
 			return false;
 		}
 
+		//检查是否有定义order加载顺序，如果有则给bean定义加上ConfigurationClassPostProcessor.order属性
 		// It's a full or lite configuration candidate... Let's determine the order value, if any.
 		Integer order = getOrder(metadata);
 		if (order != null) {

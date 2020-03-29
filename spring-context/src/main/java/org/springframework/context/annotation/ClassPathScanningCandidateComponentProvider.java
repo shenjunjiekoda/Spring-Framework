@@ -314,6 +314,7 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 	 * @param basePackage the package to check for annotated classes
 	 * @return a corresponding Set of autodetected bean definitions
 	 */
+	//扫描给定类路径的包
 	public Set<BeanDefinition> findCandidateComponents(String basePackage) {
 		if (this.componentsIndex != null && indexSupportsIncludeFilters()) {
 			return addCandidateComponentsFromIndex(this.componentsIndex, basePackage);
@@ -377,6 +378,7 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 	}
 
 	private Set<BeanDefinition> addCandidateComponentsFromIndex(CandidateComponentsIndex index, String basePackage) {
+		//创建存储扫描到的类的集合
 		Set<BeanDefinition> candidates = new LinkedHashSet<>();
 		try {
 			Set<String> types = new HashSet<>();
@@ -390,8 +392,11 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 			boolean traceEnabled = logger.isTraceEnabled();
 			boolean debugEnabled = logger.isDebugEnabled();
 			for (String type : types) {
+				//为指定资源获取元数据读取器，元信息读取器通过汇编(ASM)读//取资源元信息
 				MetadataReader metadataReader = getMetadataReaderFactory().getMetadataReader(type);
+				//如果扫描到的类符合容器配置的过滤规则
 				if (isCandidateComponent(metadataReader)) {
+					//通过汇编(ASM)读取资源字节码中的Bean定义元信息
 					ScannedGenericBeanDefinition sbd = new ScannedGenericBeanDefinition(metadataReader);
 					if (isCandidateComponent(sbd)) {
 						if (debugEnabled) {
@@ -421,6 +426,7 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 	private Set<BeanDefinition> scanCandidateComponents(String basePackage) {
 		Set<BeanDefinition> candidates = new LinkedHashSet<>();
 		try {
+			//扫描classpath下指定路径的class类
 			String packageSearchPath = ResourcePatternResolver.CLASSPATH_ALL_URL_PREFIX +
 					resolveBasePackage(basePackage) + '/' + this.resourcePattern;
 			Resource[] resources = getResourcePatternResolver().getResources(packageSearchPath);
@@ -438,8 +444,9 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 							sbd.setResource(resource);
 							sbd.setSource(resource);
 							if (isCandidateComponent(sbd)) {
+								//识别到Component组件类
 								if (debugEnabled) {
-									logger.debug("Identified candidate component class: " + resource);
+									logger.debug("=====识别到Candidate Componet类的路径: " + resource +"=====");
 								}
 								candidates.add(sbd);
 							}
@@ -492,12 +499,16 @@ public class ClassPathScanningCandidateComponentProvider implements EnvironmentC
 	 * @param metadataReader the ASM ClassReader for the class
 	 * @return whether the class qualifies as a candidate component
 	 */
+	//判断元信息读取器读取的类是否符合容器定义的注解过滤规则
 	protected boolean isCandidateComponent(MetadataReader metadataReader) throws IOException {
+		//如果读取的类的注解在排除注解过滤规则中，返回false
 		for (TypeFilter tf : this.excludeFilters) {
 			if (tf.match(metadataReader, getMetadataReaderFactory())) {
 				return false;
 			}
 		}
+		//判断是不是Component注解、还包括Named、ManagedBean注解
+		//如果读取的类的注解在包含的注解的过滤规则中，则返回true
 		for (TypeFilter tf : this.includeFilters) {
 			if (tf.match(metadataReader, getMetadataReaderFactory())) {
 				return isConditionMatch(metadataReader);

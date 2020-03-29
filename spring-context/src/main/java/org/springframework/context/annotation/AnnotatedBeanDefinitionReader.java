@@ -68,7 +68,7 @@ public class AnnotatedBeanDefinitionReader {
 	 * @see #setEnvironment(Environment)
 	 */
 	public AnnotatedBeanDefinitionReader(BeanDefinitionRegistry registry) {
-		//创建或直接获取Environment
+		//根据注册中心创建或直接获取Environment
 		this(registry, getOrCreateEnvironment(registry));
 	}
 
@@ -86,7 +86,7 @@ public class AnnotatedBeanDefinitionReader {
 		Assert.notNull(environment, "Environment must not be null");
 		this.registry = registry;
 		this.conditionEvaluator = new ConditionEvaluator(registry, environment, null);
-		//注册一些Spring内部的BeanPostProcessor处理器，通过registry获取目前所有BeanPostProcessor的bean
+		//注册一些Spring内部处理注解的BeanFactoryPostProcessor处理器
 		AnnotationConfigUtils.registerAnnotationConfigProcessors(this.registry);
 	}
 
@@ -134,6 +134,7 @@ public class AnnotatedBeanDefinitionReader {
 	 * @param componentClasses one or more component classes,
 	 * e.g. {@link Configuration @Configuration} classes
 	 */
+	//注册多个注解Bean定义类
 	public void register(Class<?>... componentClasses) {
 		for (Class<?> componentClass : componentClasses) {
 			registerBean(componentClass);
@@ -145,6 +146,7 @@ public class AnnotatedBeanDefinitionReader {
 	 * class-declared annotations.
 	 * @param beanClass the class of the bean
 	 */
+	//依据声明类的注解元信息注册给定的bean
 	public void registerBean(Class<?> beanClass) {
 		doRegisterBean(beanClass, null, null, null, null);
 	}
@@ -248,29 +250,38 @@ public class AnnotatedBeanDefinitionReader {
 	 * {@link BeanDefinition}, e.g. setting a lazy-init or primary flag
 	 * @since 5.0
 	 */
+	//Bean定义读取器依据声明类的注解元信息向容器注册注解Bean定义类
 	private <T> void doRegisterBean(Class<T> beanClass, @Nullable String name,
 			@Nullable Class<? extends Annotation>[] qualifiers, @Nullable Supplier<T> supplier,
 			@Nullable BeanDefinitionCustomizer[] customizers) {
 
 		AnnotatedGenericBeanDefinition abd = new AnnotatedGenericBeanDefinition(beanClass);
+		//根据@Conditional判断是否需要注册
 		if (this.conditionEvaluator.shouldSkip(abd.getMetadata())) {
 			return;
 		}
 
 		abd.setInstanceSupplier(supplier);
+		//解析注解Bean定义的作用域
 		ScopeMetadata scopeMetadata = this.scopeMetadataResolver.resolveScopeMetadata(abd);
+		//设置作用域
 		abd.setScope(scopeMetadata.getScopeName());
+		//根据bean名称生成器判断是否注解中有value没有就是首字母小写生成beanName
 		String beanName = (name != null ? name : this.beanNameGenerator.generateBeanName(abd, this.registry));
-
+		//处理Bean定义中通用注解如Lazy、Primary、DependsOn等
 		AnnotationConfigUtils.processCommonDefinitionAnnotations(abd);
+		//如果qualifier限定条件不为空，则Autowired自动装配时优先使用@Qualifier的名称装配
 		if (qualifiers != null) {
 			for (Class<? extends Annotation> qualifier : qualifiers) {
+				//向bean定义配置Primary属性
 				if (Primary.class == qualifier) {
 					abd.setPrimary(true);
 				}
+				//向bean定义配置Lazy属性值
 				else if (Lazy.class == qualifier) {
 					abd.setLazyInit(true);
 				}
+				//autowired自动依赖注入装配时，根据名称装配限定符指定的Bean
 				else {
 					abd.addQualifier(new AutowireCandidateQualifier(qualifier));
 				}
@@ -281,9 +292,11 @@ public class AnnotatedBeanDefinitionReader {
 				customizer.customize(abd);
 			}
 		}
-
+		//创建holder封装bean元信息
 		BeanDefinitionHolder definitionHolder = new BeanDefinitionHolder(abd, beanName);
+		//根据注解Bean定义类中配置的作用域，创建相应的代理对象
 		definitionHolder = AnnotationConfigUtils.applyScopedProxyMode(scopeMetadata, definitionHolder, this.registry);
+		//将bean定义放到bean定义map中
 		BeanDefinitionReaderUtils.registerBeanDefinition(definitionHolder, this.registry);
 	}
 

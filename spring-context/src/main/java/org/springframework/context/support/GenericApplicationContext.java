@@ -21,6 +21,9 @@ import java.lang.reflect.Constructor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.hibernate.validator.internal.util.logging.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanDefinitionStoreException;
@@ -102,6 +105,7 @@ public class GenericApplicationContext extends AbstractApplicationContext implem
 
 	private final AtomicBoolean refreshed = new AtomicBoolean();
 
+	private final Log logger = LogFactory.getLog(getClass());
 
 	/**
 	 * Create a new GenericApplicationContext.
@@ -109,6 +113,9 @@ public class GenericApplicationContext extends AbstractApplicationContext implem
 	 * @see #refresh
 	 */
 	public GenericApplicationContext() {
+		logger.debug("=====调用GenericApplicationContext()空参=====");
+		logger.debug("=====NEW DefaultListableBeanFactory bean工厂=====");
+		//获得bean工厂
 		this.beanFactory = new DefaultListableBeanFactory();
 	}
 
@@ -314,12 +321,14 @@ public class GenericApplicationContext extends AbstractApplicationContext implem
 
 	//---------------------------------------------------------------------
 	// Implementation of BeanDefinitionRegistry
+	//作为注册器的实现方法
 	//---------------------------------------------------------------------
 
+	//将bean定义放到单例缓存池中
 	@Override
 	public void registerBeanDefinition(String beanName, BeanDefinition beanDefinition)
 			throws BeanDefinitionStoreException {
-
+		//就是调用DefaultListableBeanFactory的register方法，将bean定义放到单例缓存池中
 		this.beanFactory.registerBeanDefinition(beanName, beanDefinition);
 	}
 

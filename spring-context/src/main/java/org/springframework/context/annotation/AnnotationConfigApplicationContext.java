@@ -18,9 +18,12 @@ package org.springframework.context.annotation;
 
 import java.util.function.Supplier;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.config.BeanDefinitionCustomizer;
 import org.springframework.beans.factory.support.BeanNameGenerator;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import org.springframework.context.support.AbstractApplicationContext;
 import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.lang.Nullable;
@@ -53,6 +56,8 @@ import org.springframework.util.Assert;
  */
 public class AnnotationConfigApplicationContext extends GenericApplicationContext implements AnnotationConfigRegistry {
 
+	private final Log logger = LogFactory.getLog(getClass());
+
 	//保存一个读取注解的Bean定义读取器，并将其设置到容器中
 	private final AnnotatedBeanDefinitionReader reader;
 
@@ -74,6 +79,7 @@ public class AnnotationConfigApplicationContext extends GenericApplicationContex
 	 * 其实通过继承关系还可得知，上面还有他的父类，也会加载用到的组件包括类加载器，资源文件解析器。
 	 */
 	public AnnotationConfigApplicationContext() {
+		logger.debug("=====调用AnnotationConfigApplicationContext()空参=====");
 		//初始化读取注解的Bean定义读取器，并将其设置到容器中
 		this.reader = new AnnotatedBeanDefinitionReader(this);
 		//保存一个扫描指定类路径中注解Bean定义的扫描器，并将其设置到容器中
@@ -104,10 +110,17 @@ public class AnnotationConfigApplicationContext extends GenericApplicationContex
 		/**
 		 * 调用父类与子类的空参构造，初始化包括：
 		 * bean工厂、读取注解的bean定义读取器、指定类路径注解的bean定义扫描器、资源解析器等
-		 * 并在其中初始化了Environment、完成了spring内部BeanDefinition的注册等
+		 * 并在其中初始化了Environment、完成了spring内部的BeanDefinition的注册
+		 * 主要包括各种注解Configuration、EventListenr的处理器等
 		 */
 		this();
+		/**
+		 * 注册一个要被处理的注解Bean，主要是校验后放到bean定义map中
+		 */
 		register(componentClasses);
+		/**
+		 * 刷新容器
+		 */
 		refresh();
 	}
 
@@ -178,6 +191,7 @@ public class AnnotationConfigApplicationContext extends GenericApplicationContex
 	 * @see #scan(String...)
 	 * @see #refresh()
 	 */
+	//为容器注册一个要被处理的注解Bean
 	@Override
 	public void register(Class<?>... componentClasses) {
 		Assert.notEmpty(componentClasses, "At least one component class must be specified");

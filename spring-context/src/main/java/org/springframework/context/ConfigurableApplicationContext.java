@@ -220,6 +220,7 @@ public interface ConfigurableApplicationContext extends ApplicationContext, Life
 	 * @see #close()
 	 * @see #addBeanFactoryPostProcessor
 	 */
+	//返回此应用上下文的内部bean工厂
 	ConfigurableListableBeanFactory getBeanFactory() throws IllegalStateException;
 
 }

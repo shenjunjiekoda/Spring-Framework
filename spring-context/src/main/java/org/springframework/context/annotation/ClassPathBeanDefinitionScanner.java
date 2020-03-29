@@ -116,7 +116,7 @@ public class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateCo
 	 * 注解的Bean，同时也支持JavaEE6的@ManagedBean和JSR-330的@Named注解
 	 */
 	public ClassPathBeanDefinitionScanner(BeanDefinitionRegistry registry, boolean useDefaultFilters) {
-		//这个时候初始化Environment
+		//如果还没初始化Environment就初始化
 		this(registry, useDefaultFilters, getOrCreateEnvironment(registry));
 	}
 
@@ -259,16 +259,18 @@ public class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateCo
 	 * @param basePackages the packages to check for annotated classes
 	 * @return number of beans registered
 	 */
+	//调用类路径Bean定义扫描器入口方法
 	public int scan(String... basePackages) {
 		int beanCountAtScanStart = this.registry.getBeanDefinitionCount();
-
+		//扫描指定路径包下需要注册的bean封装处理好后放入bean定义map
 		doScan(basePackages);
 
 		// Register annotation config processors, if necessary.
+		//注册处理注解的bean后置处理器
 		if (this.includeAnnotationConfig) {
 			AnnotationConfigUtils.registerAnnotationConfigProcessors(this.registry);
 		}
-
+		//返回注册的Bean个数
 		return (this.registry.getBeanDefinitionCount() - beanCountAtScanStart);
 	}
 
@@ -280,10 +282,15 @@ public class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateCo
 	 * @param basePackages the packages to check for annotated classes
 	 * @return set of beans registered if any for tooling registration purposes (never {@code null})
 	 */
+	//类路径Bean定义扫描器扫描给定包及其子包
 	protected Set<BeanDefinitionHolder> doScan(String... basePackages) {
 		Assert.notEmpty(basePackages, "At least one base package must be specified");
+		//set保存扫描到的Bean定义holder
 		Set<BeanDefinitionHolder> beanDefinitions = new LinkedHashSet<>();
+		//遍历扫描所有给定的包
 		for (String basePackage : basePackages) {
+			//调用父类ClassPathScanningCandidateComponentProvider的方法
+			//扫描给定类路径，获取符合条件的Bean定义
 			Set<BeanDefinition> candidates = findCandidateComponents(basePackage);
 			for (BeanDefinition candidate : candidates) {
 				ScopeMetadata scopeMetadata = this.scopeMetadataResolver.resolveScopeMetadata(candidate);
