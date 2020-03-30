@@ -261,13 +261,17 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 					"postProcessBeanFactory already called on this post-processor against " + beanFactory);
 		}
 		this.factoriesPostProcessed.add(factoryId);
+		// 这一步的意思是：如果processConfigBeanDefinitions没被执行过（不支持hook的时候不会执行）
+		// 这里会补充去执行processConfigBeanDefinitions这个方法
 		if (!this.registriesPostProcessed.contains(factoryId)) {
 			// BeanDefinitionRegistryPostProcessor hook apparently not supported...
 			// Simply call processConfigurationClasses lazily at this point then.
 			processConfigBeanDefinitions((BeanDefinitionRegistry) beanFactory);
 		}
-
+		//对当前bean定义map中的bean定义增强
 		enhanceConfigurationClasses(beanFactory);
+		// 添加一个后置处理器。ImportAwareBeanPostProcessor它是一个静态内部类
+		// 它实现了SmartInstantiationAwareBeanPostProcessor接口
 		beanFactory.addBeanPostProcessor(new ImportAwareBeanPostProcessor(beanFactory));
 	}
 
@@ -281,12 +285,14 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 
 		for (String beanName : candidateNames) {
 			BeanDefinition beanDef = registry.getBeanDefinition(beanName);
-			//如果已经被处理过bean定义则会有名为ConfigurationClassPostProcessor.configurationClass的属性
+			//如果已经被处理过bean定义则会有名为ConfigurationClassPostProcessor.configurationClass的属性,已经判断过是full还是lite了
 			if (beanDef.getAttribute(ConfigurationClassUtils.CONFIGURATION_CLASS_ATTRIBUTE) != null) {
 				//此bean定义已经被作为配置类bean处理过啦
 				if (logger.isDebugEnabled()) {
 					logger.debug("=====该bean定义已被加载为配置类: " + beanDef + "=====");
 				}
+				//注意这个判断里的checkConfigurationClassCandidate
+				//他会扫描到当前的配置类给他的bean定义加上是full模式还是lite模式，即到底要不要cglib增强
 			} else if (ConfigurationClassUtils.checkConfigurationClassCandidate(beanDef, this.metadataReaderFactory)) {
 				//加入candidates，即将被作为配置类bean处理
 				if (logger.isDebugEnabled()) {
@@ -339,8 +345,9 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 		Set<BeanDefinitionHolder> candidates = new LinkedHashSet<>(configCandidates);
 		//保存已经被解析为配置类bean的set
 		Set<ConfigurationClass> alreadyParsed = new HashSet<>(configCandidates.size());
+		//关键的循环，确保
 		do {
-			//解析核心操作
+			//解析核心操作，会不断解析完candidates
 			parser.parse(candidates);
 			// 校验 配置类不能使final的，因为需要使用CGLIB生成代理对象，见postProcessBeanFactory方法
 			parser.validate();
@@ -354,7 +361,7 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 						registry, this.sourceExtractor, this.resourceLoader, this.environment,
 						this.importBeanNameGenerator, parser.getImportRegistry());
 			}
-			//让bean定义读取器加载bean定义并去注册！
+			//让bean定义读取器加载bean定义并放到bean定义map里！
 			// 此处注意：调用了ConfigurationClassBeanDefinitionReader的loadBeanDefinitionsd
 			// 的加载配置文件里面的@Bean/@Import
 			// 这个方法是非常重要的，因为它决定了向容器注册Bean定义信息的顺序问题~~~
@@ -409,9 +416,12 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 	 * @see ConfigurationClassEnhancer
 	 */
 	public void enhanceConfigurationClasses(ConfigurableListableBeanFactory beanFactory) {
+		//维护着要被增强的配置类map
 		Map<String, AbstractBeanDefinition> configBeanDefs = new LinkedHashMap<>();
+		//遍历bean定义map
 		for (String beanName : beanFactory.getBeanDefinitionNames()) {
 			BeanDefinition beanDef = beanFactory.getBeanDefinition(beanName);
+			//判断是lite还是full
 			Object configClassAttr = beanDef.getAttribute(ConfigurationClassUtils.CONFIGURATION_CLASS_ATTRIBUTE);
 			MethodMetadata methodMetadata = null;
 			if (beanDef instanceof AnnotatedBeanDefinition) {
@@ -430,6 +440,7 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 					}
 				}
 			}
+			//处理加了@Configuration的full模式配置类
 			if (ConfigurationClassUtils.CONFIGURATION_CLASS_FULL.equals(configClassAttr)) {
 				if (!(beanDef instanceof AbstractBeanDefinition)) {
 					throw new BeanDefinitionStoreException("Cannot enhance @Configuration bean definition '" +
@@ -452,9 +463,12 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 		for (Map.Entry<String, AbstractBeanDefinition> entry : configBeanDefs.entrySet()) {
 			AbstractBeanDefinition beanDef = entry.getValue();
 			// If a @Configuration class gets proxied, always proxy the target class
+			//设置bean定义为aop增强类
 			beanDef.setAttribute(AutoProxyUtils.PRESERVE_TARGET_CLASS_ATTRIBUTE, Boolean.TRUE);
 			// Set enhanced subclass of the user-specified bean class
+			//获取原生配置类
 			Class<?> configClass = beanDef.getBeanClass();
+			//对此类进行cglib增强
 			Class<?> enhancedClass = enhancer.enhance(configClass, this.beanClassLoader);
 			if (configClass != enhancedClass) {
 				if (logger.isTraceEnabled()) {

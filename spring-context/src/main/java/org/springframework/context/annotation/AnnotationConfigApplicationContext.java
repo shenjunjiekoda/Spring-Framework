@@ -58,10 +58,10 @@ public class AnnotationConfigApplicationContext extends GenericApplicationContex
 
 	private final Log logger = LogFactory.getLog(getClass());
 
-	//保存一个读取注解的Bean定义读取器，并将其设置到容器中
+	//保存一个读取注解的Bean定义读取器，并将其设置到上下文中
 	private final AnnotatedBeanDefinitionReader reader;
 
-	//保存一个扫描指定类路径中注解Bean定义的扫描器，并将其设置到容器中
+	//保存一个扫描指定类路径中注解Bean定义的扫描器，并将其设置到上下文中
 	private final ClassPathBeanDefinitionScanner scanner;
 
 
@@ -119,7 +119,9 @@ public class AnnotationConfigApplicationContext extends GenericApplicationContex
 		 */
 		register(componentClasses);
 		/**
-		 * 刷新容器
+		 * 刷新上下文，从准备bean工厂到完成bean工厂后置处理，包括扫包、填充bean定义map等
+		 * 直到所有非懒加载的非抽象的单例bean推断构造器完成实例化以及初始化前后的后置处理器
+		 * 和生命周期回调，最后发布event通知刷新完成
 		 */
 		refresh();
 	}

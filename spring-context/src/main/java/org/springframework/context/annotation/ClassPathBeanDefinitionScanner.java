@@ -282,7 +282,7 @@ public class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateCo
 	 * @param basePackages the packages to check for annotated classes
 	 * @return set of beans registered if any for tooling registration purposes (never {@code null})
 	 */
-	//类路径Bean定义扫描器扫描给定包及其子包
+	//根据传进来给定的类路径Bean定义扫描器扫描给定包及其子包
 	protected Set<BeanDefinitionHolder> doScan(String... basePackages) {
 		Assert.notEmpty(basePackages, "At least one base package must be specified");
 		//set保存扫描到的Bean定义holder
@@ -290,16 +290,18 @@ public class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateCo
 		//遍历扫描所有给定的包
 		for (String basePackage : basePackages) {
 			//调用父类ClassPathScanningCandidateComponentProvider的方法
-			//扫描给定类路径，获取符合条件的Bean定义
+			//findCandidateComponents扫描给定类路径，获取符合条件的Bean定义
 			Set<BeanDefinition> candidates = findCandidateComponents(basePackage);
 			for (BeanDefinition candidate : candidates) {
 				ScopeMetadata scopeMetadata = this.scopeMetadataResolver.resolveScopeMetadata(candidate);
 				candidate.setScope(scopeMetadata.getScopeName());
 				String beanName = this.beanNameGenerator.generateBeanName(candidate, this.registry);
 				if (candidate instanceof AbstractBeanDefinition) {
+					//设置一些bean定义的基本默认值
 					postProcessBeanDefinition((AbstractBeanDefinition) candidate, beanName);
 				}
 				if (candidate instanceof AnnotatedBeanDefinition) {
+					//处理Bean定义中通用注解如Lazy、Primary、DependsOn等
 					AnnotationConfigUtils.processCommonDefinitionAnnotations((AnnotatedBeanDefinition) candidate);
 				}
 				if (checkCandidate(beanName, candidate)) {
@@ -307,6 +309,7 @@ public class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateCo
 					definitionHolder =
 							AnnotationConfigUtils.applyScopedProxyMode(scopeMetadata, definitionHolder, this.registry);
 					beanDefinitions.add(definitionHolder);
+					//将当前扫包获得的所有符合条件的候选类的bean定义放到bean定义map中
 					registerBeanDefinition(definitionHolder, this.registry);
 				}
 			}

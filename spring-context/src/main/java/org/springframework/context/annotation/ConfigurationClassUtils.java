@@ -101,6 +101,7 @@ abstract class ConfigurationClassUtils {
 			// Check already loaded Class if present...
 			// since we possibly can't even load the class file for this Class.
 			Class<?> beanClass = ((AbstractBeanDefinition) beanDef).getBeanClass();
+			//检查不能是以下的四个接口类的class，这些接口的实现类不是现在被加载解析的
 			if (BeanFactoryPostProcessor.class.isAssignableFrom(beanClass) ||
 					BeanPostProcessor.class.isAssignableFrom(beanClass) ||
 					AopInfrastructureBean.class.isAssignableFrom(beanClass) ||
@@ -124,10 +125,15 @@ abstract class ConfigurationClassUtils {
 		}
 		//获得注解Configuration的值，开始检查属性值判断是否是候选类
 		Map<String, Object> config = metadata.getAnnotationAttributes(Configuration.class.getName());
-		//根据Configuration类的proxyBeanMethods设置bean定义的配置类属性
+		//根据Configuration类的proxyBeanMethods设置bean定义的配置类属性，需要后续CGLIB增强
 		if (config != null && !Boolean.FALSE.equals(config.get("proxyBeanMethods"))) {
 			beanDef.setAttribute(CONFIGURATION_CLASS_ATTRIBUTE, CONFIGURATION_CLASS_FULL);
 		}
+		//判断是不是@Configuration proxyBeanMethods设置为true或者是轻量候选配置类
+		//如没有@Configuration
+		//只要是有@Component、@ComponentScan、@Import、@ImportResource其中任意一个注解
+		//或者方法上有bean注解
+		//他就是一个轻量的配置类，也会被之后解析
 		else if (config != null || isConfigurationCandidate(metadata)) {
 			beanDef.setAttribute(CONFIGURATION_CLASS_ATTRIBUTE, CONFIGURATION_CLASS_LITE);
 		}
@@ -158,6 +164,9 @@ abstract class ConfigurationClassUtils {
 			return false;
 		}
 
+		//如没有@Configuration
+		//只要是有@Component、@ComponentScan、@Import、@ImportResource其中任意一个注解
+		//他就是一个轻量的配置类，也会被之后解析
 		// Any of the typical annotations found?
 		for (String indicator : candidateIndicators) {
 			if (metadata.isAnnotated(indicator)) {
@@ -165,6 +174,7 @@ abstract class ConfigurationClassUtils {
 			}
 		}
 
+		//如果类上有bean方法他也是lite配置类
 		// Finally, let's look for @Bean methods...
 		try {
 			return metadata.hasAnnotatedMethods(Bean.class.getName());
