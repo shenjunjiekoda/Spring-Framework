@@ -6,6 +6,8 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
+
 /**
  * @author Junjie.Shen
  * @version 1.0
@@ -13,12 +15,21 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class AService {
-	@Autowired
-	private BService bService;
+//	@Autowired
+//	private BService bService;
+
+
 
 	private final Log logger = LogFactory.getLog(getClass());
 
 	public AService(){
 		logger.debug("=====AService()空参call=====");
 	}
+
+	@PostConstruct
+	public void test(){
+		System.out.println("A test()");
+		logger.debug("=====A @PostConstruct call=====");
+	}
+
 }
