@@ -517,7 +517,9 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			// Give BeanPostProcessors a chance to return a proxy instead of the target bean instance.
 			// 第一次生命周期回调，此时是实例化前后的处理回调
 			// 如果Bean配置了实例前和实例化后的处理器InstantiationAwareBeanPostProcessor
-			// 则试图返回一个需要创建Bean的代理对象，AOP就是在这里实现的
+			// 则试图返回一个需要创建Bean的代理对象，AOP可能会在这里实现
+			// 如果有目标源的话这里会尝试返回一个代理对象
+			// 没有自定义目标源的话，一般AOP是在生命周期的初始化后置回调中执行的
 			// 从doc解释：给BeanPostProcessors一个机会来返回一个代理对象代替目标对象
 			// 具体逻辑是判断当前Spring容器是否注册了实现了InstantiationAwareBeanPostProcessor接口的后置处理器
 			// 如果有，则依次调用其中的applyBeanPostProcessorsBeforeInstantiation方法，如果中间任意一个方法返回的bean不为null,直接结束调用。
@@ -1211,7 +1213,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 					//1、ConfigurationClassPostProcessor$ImportAwareBeanPostProcessor这个内部类就是这个类型。
 					// 主要还是去增强、完善处理@Configuration这种类
 					//2、CommonAnnotationBeanPostProcessor/Autowired。。。也没做处理（若你自己不去注册，那系统里就再没有了）
-					// 需要注意的是，如果我们采用了AOP、声明式事务等等，这里就会有
+					// 需要注意的是，如果我们采用了AOP的指定目标源、声明式事务等等，这里就会有
 					bean = applyBeanPostProcessorsBeforeInstantiation(targetType, beanName);
 					// 我们可以看到，如果bean为null，那就直接返回了  短路掉后面的After也就不执行了
 					if (bean != null) {
@@ -1501,6 +1503,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	 * @param bw the BeanWrapper with bean instance
 	 */
 	@SuppressWarnings("deprecation")  // for postProcessPropertyValues
+	//完成依赖注入！
 	protected void populateBean(String beanName, RootBeanDefinition mbd, @Nullable BeanWrapper bw) {
 		if (bw == null) {
 			if (mbd.hasPropertyValues()) {
@@ -1529,6 +1532,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
 		PropertyValues pvs = (mbd.hasPropertyValues() ? mbd.getPropertyValues() : null);
 
+		//如果有配置bean的依赖注入模式，那就分别判断通过byName
 		int resolvedAutowireMode = mbd.getResolvedAutowireMode();
 		if (resolvedAutowireMode == AUTOWIRE_BY_NAME || resolvedAutowireMode == AUTOWIRE_BY_TYPE) {
 			MutablePropertyValues newPvs = new MutablePropertyValues(pvs);
@@ -1554,6 +1558,8 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			for (BeanPostProcessor bp : getBeanPostProcessors()) {
 				if (bp instanceof InstantiationAwareBeanPostProcessor) {
 					InstantiationAwareBeanPostProcessor ibp = (InstantiationAwareBeanPostProcessor) bp;//处理依赖的属性就是在这
+					//执行依赖注入的回调函数postProcessProperties
+					//@autowired和@resource都在这
 					PropertyValues pvsToUse = ibp.postProcessProperties(pvs, bw.getWrappedInstance(), beanName);
 					if (pvsToUse == null) {
 						if (filteredPds == null) {
@@ -1575,7 +1581,8 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			checkDependencies(beanName, mbd, filteredPds, pvs);
 		}
 
-		if (pvs != null) {//注入属性值，属性赋值在这里完成
+		if (pvs != null) {
+			//注入属性值，属性赋值在这里完成
 			applyPropertyValues(beanName, mbd, bw, pvs);
 		}
 	}
@@ -1915,15 +1922,20 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			}, getAccessControlContext());
 		}
 		else {
+			//处理aware接口
+			//包括set beanName，beanClassLoader，beanFactory
 			invokeAwareMethods(beanName, bean);
 		}
 
 		Object wrappedBean = bean;
 		if (mbd == null || !mbd.isSynthetic()) {
+			//执行所有bean后置处理器初始化前置方法
+			//@PostConstruct也是在这被CommonAnnotationBeanPostProcessor的前置方法调用
 			wrappedBean = applyBeanPostProcessorsBeforeInitialization(wrappedBean, beanName);
 		}
 
 		try {
+			//执行InitializingBean和init-method声明的生命周期方法
 			invokeInitMethods(beanName, wrappedBean, mbd);
 		}
 		catch (Throwable ex) {
@@ -1932,6 +1944,8 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 					beanName, "Invocation of init method failed", ex);
 		}
 		if (mbd == null || !mbd.isSynthetic()) {
+			//执行所有bean后置处理器的后置方法
+			//aop也是在这里被
 			wrappedBean = applyBeanPostProcessorsAfterInitialization(wrappedBean, beanName);
 		}
 
