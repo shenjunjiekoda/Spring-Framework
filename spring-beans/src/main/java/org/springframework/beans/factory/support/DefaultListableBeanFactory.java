@@ -1247,7 +1247,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 	}
 
 	@Override
-	@Nullable
+	@Nullable//解决依赖注入
 	public Object resolveDependency(DependencyDescriptor descriptor, @Nullable String requestingBeanName,
 									@Nullable Set<String> autowiredBeanNames, @Nullable TypeConverter typeConverter) throws BeansException {
 
@@ -1339,7 +1339,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 			if (autowiredBeanNames != null) {
 				autowiredBeanNames.add(autowiredBeanName);
 			}
-			if (instanceCandidate instanceof Class) {
+			if (instanceCandidate instanceof Class) {//获取注入候选对象
 				instanceCandidate = descriptor.resolveCandidate(autowiredBeanName, type, this);
 			}
 			Object result = instanceCandidate;

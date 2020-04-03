@@ -71,12 +71,15 @@ import org.springframework.util.StringUtils;
 public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements SingletonBeanRegistry {
 
 	/** Cache of singleton objects: bean name to bean instance. */
+	//单例池(一级缓存)
 	private final Map<String, Object> singletonObjects = new ConcurrentHashMap<>(256);
 
 	/** Cache of singleton factories: bean name to ObjectFactory. */
+	//工厂池(二级缓存)
 	private final Map<String, ObjectFactory<?>> singletonFactories = new HashMap<>(16);
 
 	/** Cache of early singleton objects: bean name to bean instance. */
+	//前期的单例池(三级缓存)
 	private final Map<String, Object> earlySingletonObjects = new HashMap<>(16);
 
 	/** Set of registered singletons, containing the bean names in registration order. */
@@ -161,9 +164,13 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	protected void addSingletonFactory(String beanName, ObjectFactory<?> singletonFactory) {
 		Assert.notNull(singletonFactory, "Singleton factory must not be null");
 		synchronized (this.singletonObjects) {
+			//如果一级缓存没有就往二级缓存加
 			if (!this.singletonObjects.containsKey(beanName)) {
+				//往二级缓存加
 				this.singletonFactories.put(beanName, singletonFactory);
+				//从三级缓存移除同名
 				this.earlySingletonObjects.remove(beanName);
+				//在维护已注册的单例bean的name列表加上
 				this.registeredSingletons.add(beanName);
 			}
 		}
@@ -270,10 +277,10 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 				finally {
 					if (recordSuppressedExceptions) {
 						this.suppressedExceptions = null;
-					}
+					}//从维护正在创建的set中干掉就完事了
 					afterSingletonCreation(beanName);
 				}
-				if (newSingleton) {
+				if (newSingleton) {//最后都放入单例池中，二三级缓存里的都干掉
 					addSingleton(beanName, singletonObject);
 				}
 			}

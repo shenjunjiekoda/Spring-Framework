@@ -124,34 +124,42 @@ class ConstructorResolver {
 	 */
 	public BeanWrapper autowireConstructor(String beanName, RootBeanDefinition mbd,
 			@Nullable Constructor<?>[] chosenCtors, @Nullable Object[] explicitArgs) {
-
+		//new一个BeanWrapperImpl类对象
 		BeanWrapperImpl bw = new BeanWrapperImpl();
+		// initBeanWrapper做了一些事
+		// 比如注册解析器、value解析器
 		this.beanFactory.initBeanWrapper(bw);
 
 		Constructor<?> constructorToUse = null;
 		ArgumentsHolder argsHolderToUse = null;
 		Object[] argsToUse = null;
 
+		//如果构造参数不为空就直接使用这些参数即可
 		if (explicitArgs != null) {
 			argsToUse = explicitArgs;
 		}
+		// 否则构造函数的入参，交给Spring处理。它会去容器里拿
 		else {
 			Object[] argsToResolve = null;
 			synchronized (mbd.constructorArgumentLock) {
+				//获取已缓存解析的构造函数或工厂方法（resolvedConstructorOrFactoryMethod----用于缓存已解析的构造函数或工厂方法）
 				constructorToUse = (Constructor<?>) mbd.resolvedConstructorOrFactoryMethod;
 				if (constructorToUse != null && mbd.constructorArgumentsResolved) {
 					// Found a cached constructor...
+					//获取已缓存解析的构造函数或工厂方法（resolvedConstructorOrFactoryMethod----用于缓存已解析的构造函数或工厂方法）
 					argsToUse = mbd.resolvedConstructorArguments;
+
 					if (argsToUse == null) {
 						argsToResolve = mbd.preparedConstructorArguments;
 					}
 				}
 			}
+			// 如果上面没有解析过，显然这里参数就是null了,argsToUse也就还为null
 			if (argsToResolve != null) {
 				argsToUse = resolvePreparedArguments(beanName, mbd, bw, constructorToUse, argsToResolve, true);
 			}
 		}
-
+		//如果缓存的构造器不存在，就说明没有bean进行过解析，需要去关联对应的bean的构造器
 		if (constructorToUse == null || argsToUse == null) {
 			// Take specified constructors, if any.
 			Constructor<?>[] candidates = chosenCtors;
@@ -182,20 +190,25 @@ class ConstructorResolver {
 			}
 
 			// Need to resolve the constructor.
+			// 我们的传值chosenCtors 显然不为null，所以此值为true
 			boolean autowiring = (chosenCtors != null ||
 					mbd.getResolvedAutowireMode() == AutowireCapableBeanFactory.AUTOWIRE_CONSTRUCTOR);
 			ConstructorArgumentValues resolvedValues = null;
 
 			int minNrOfArgs;
+			//若传入的构造参数不为空，那最小参数长度为准
 			if (explicitArgs != null) {
 				minNrOfArgs = explicitArgs.length;
 			}
 			else {
+				// 这里相当于要解析出构造函数的参数了
+				//解析对应的构造参数然后添加到ConstructorArgumentValues中
 				ConstructorArgumentValues cargs = mbd.getConstructorArgumentValues();
 				resolvedValues = new ConstructorArgumentValues();
 				minNrOfArgs = resolveConstructorArguments(beanName, mbd, bw, cargs, resolvedValues);
 			}
-
+			//按照访问方式和数量对构造器进行排序；public>protect>private，在同为public时构造器入参多的排在前面
+			// 所以排在第一位的，是public的，参数最多的构造器
 			AutowireUtils.sortConstructors(candidates);
 			int minTypeDiffWeight = Integer.MAX_VALUE;
 			Set<Constructor<?>> ambiguousConstructors = null;
@@ -203,13 +216,16 @@ class ConstructorResolver {
 
 			for (Constructor<?> candidate : candidates) {
 
+				// 拿到构造器参数的类型们
 				int parameterCount = candidate.getParameterCount();
-
+				// constructorToUse不为null(表示已经找到了合适构造器)，
+				// 但是呢，连参数个数的长度都对应不上，那就直接break，后面的构造器全都不用看了
 				if (constructorToUse != null && argsToUse != null && argsToUse.length > parameterCount) {
 					// Already found greedy constructor that can be satisfied ->
 					// do not look any further, there are only less greedy constructors left.
 					break;
 				}
+				// 如果参数个数比最小个数还小，那就继续下一个构造器吧。
 				if (parameterCount < minNrOfArgs) {
 					continue;
 				}
@@ -218,6 +234,8 @@ class ConstructorResolver {
 				Class<?>[] paramTypes = candidate.getParameterTypes();
 				if (resolvedValues != null) {
 					try {
+						//兼容JDK6提供的@ConstructorProperties这个注解，如果它标注了参数名，那就以它的名字为准
+						//@ConstructorProperties的作用=======》构造函数上的注解，显示该构造函数的参数如何与构造对象的getter方法相对应
 						String[] paramNames = ConstructorPropertiesChecker.evaluate(candidate, parameterCount);
 						if (paramNames == null) {
 							ParameterNameDiscoverer pnd = this.beanFactory.getParameterNameDiscoverer();
@@ -292,6 +310,7 @@ class ConstructorResolver {
 		}
 
 		Assert.state(argsToUse != null, "Unresolved constructor arguments");
+		//调用构造函数和参数反射创建
 		bw.setBeanInstance(instantiate(beanName, mbd, constructorToUse, argsToUse));
 		return bw;
 	}
@@ -486,6 +505,7 @@ class ConstructorResolver {
 				}
 			}
 
+			//排序
 			if (candidates.size() > 1) {  // explicitly skip immutable singletonList
 				candidates.sort(AutowireUtils.EXECUTABLE_COMPARATOR);
 			}

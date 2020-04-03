@@ -3,6 +3,7 @@ package cn.shenjunjie.spring.entity;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
@@ -12,6 +13,9 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class AService {
+	@Autowired
+	private BService bService;
+
 	private final Log logger = LogFactory.getLog(getClass());
 
 	public AService(){
