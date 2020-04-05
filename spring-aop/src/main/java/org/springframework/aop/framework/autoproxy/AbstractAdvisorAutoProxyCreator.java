@@ -49,6 +49,7 @@ import org.springframework.util.Assert;
 @SuppressWarnings("serial")
 public abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyCreator {
 
+	//从spring找advisor的bean的检索器
 	@Nullable
 	private BeanFactoryAdvisorRetrievalHelper advisorRetrievalHelper;
 
@@ -64,10 +65,12 @@ public abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyC
 	}
 
 	protected void initBeanFactory(ConfigurableListableBeanFactory beanFactory) {
+		//初始化检索器
 		this.advisorRetrievalHelper = new BeanFactoryAdvisorRetrievalHelperAdapter(beanFactory);
 	}
 
 
+	//获取特定bean的advisor信息
 	@Override
 	@Nullable
 	protected Object[] getAdvicesAndAdvisorsForBean(
@@ -90,11 +93,16 @@ public abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyC
 	 * @see #sortAdvisors
 	 * @see #extendAdvisors
 	 */
+	//找特定bean合法的advisors
 	protected List<Advisor> findEligibleAdvisors(Class<?> beanClass, String beanName) {
+		//先找出容器中所有的advisor bean
 		List<Advisor> candidateAdvisors = findCandidateAdvisors();
+		//找到该bean的合法的可用advisor就完事了
 		List<Advisor> eligibleAdvisors = findAdvisorsThatCanApply(candidateAdvisors, beanClass, beanName);
+		//对advisor进行附加操作
 		extendAdvisors(eligibleAdvisors);
 		if (!eligibleAdvisors.isEmpty()) {
+			//排序advisor就完事了
 			eligibleAdvisors = sortAdvisors(eligibleAdvisors);
 		}
 		return eligibleAdvisors;
@@ -106,6 +114,7 @@ public abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyC
 	 */
 	protected List<Advisor> findCandidateAdvisors() {
 		Assert.state(this.advisorRetrievalHelper != null, "No BeanFactoryAdvisorRetrievalHelper available");
+		//通过advisor检索器找到所有的advisor bean
 		return this.advisorRetrievalHelper.findAdvisorBeans();
 	}
 
@@ -120,7 +129,8 @@ public abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyC
 	 */
 	protected List<Advisor> findAdvisorsThatCanApply(
 			List<Advisor> candidateAdvisors, Class<?> beanClass, String beanName) {
-
+		// ProxyCreationContext向ThreadLocal变量中设置当前处理的beanName
+		// 并在finally字句中移除掉
 		ProxyCreationContext.setCurrentProxiedBeanName(beanName);
 		try {
 			return AopUtils.findAdvisorsThatCanApply(candidateAdvisors, beanClass);

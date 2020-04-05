@@ -38,6 +38,7 @@ import org.springframework.util.Assert;
  * @since 2.0.2
  * @see AbstractAdvisorAutoProxyCreator
  */
+//这货主要用来找advisor bean的
 public class BeanFactoryAdvisorRetrievalHelper {
 
 	private static final Log logger = LogFactory.getLog(BeanFactoryAdvisorRetrievalHelper.class);
@@ -64,12 +65,15 @@ public class BeanFactoryAdvisorRetrievalHelper {
 	 * @return the list of {@link org.springframework.aop.Advisor} beans
 	 * @see #isEligibleBean
 	 */
+	//返回现在bean工厂的合法的advisor bean
 	public List<Advisor> findAdvisorBeans() {
 		// Determine list of advisor bean names, if not cached already.
+		//缓存合法的advisor的beanName，如果有缓存直接用缓存在解析advisor就完事了
 		String[] advisorNames = this.cachedAdvisorBeanNames;
 		if (advisorNames == null) {
 			// Do not initialize FactoryBeans here: We need to leave all regular beans
 			// uninitialized to let the auto-proxy creator apply to them!
+			//获取所有Advisor类型的beanName缓存就完事了
 			advisorNames = BeanFactoryUtils.beanNamesForTypeIncludingAncestors(
 					this.beanFactory, Advisor.class, true, false);
 			this.cachedAdvisorBeanNames = advisorNames;
@@ -80,7 +84,9 @@ public class BeanFactoryAdvisorRetrievalHelper {
 
 		List<Advisor> advisors = new ArrayList<>();
 		for (String name : advisorNames) {
+			//是否advisor的beanName合法
 			if (isEligibleBean(name)) {
+				//跳过在创建过程中的advisor
 				if (this.beanFactory.isCurrentlyInCreation(name)) {
 					if (logger.isTraceEnabled()) {
 						logger.trace("Skipping currently created advisor '" + name + "'");
@@ -88,6 +94,7 @@ public class BeanFactoryAdvisorRetrievalHelper {
 				}
 				else {
 					try {
+						//从单例池中获取advisor的bean实例
 						advisors.add(this.beanFactory.getBean(name, Advisor.class));
 					}
 					catch (BeanCreationException ex) {

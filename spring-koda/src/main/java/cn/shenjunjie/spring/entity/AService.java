@@ -32,4 +32,8 @@ public class AService {
 		logger.debug("=====A @PostConstruct call=====");
 	}
 
+	public String aaa(){
+		return "aaaaa";
+	}
+
 }

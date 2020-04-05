@@ -46,6 +46,7 @@ public class ProxyAsyncConfiguration extends AbstractAsyncConfiguration {
 	public AsyncAnnotationBeanPostProcessor asyncAdvisor() {
 		Assert.notNull(this.enableAsync, "@EnableAsync annotation metadata was not injected");
 		AsyncAnnotationBeanPostProcessor bpp = new AsyncAnnotationBeanPostProcessor();
+		//获得线程池和异常处理器
 		bpp.configure(this.executor, this.exceptionHandler);
 		Class<? extends Annotation> customAsyncAnnotation = this.enableAsync.getClass("annotation");
 		if (customAsyncAnnotation != AnnotationUtils.getDefaultValue(EnableAsync.class, "annotation")) {

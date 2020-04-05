@@ -172,6 +172,7 @@ public abstract class AbstractAspectJAdvisorFactory implements AspectJAdvisorFac
 
 		private static Map<Class<?>, AspectJAnnotationType> annotationTypeMap = new HashMap<>(8);
 
+		//advisor注解类型和自定义enum的对应关系放入map
 		static {
 			annotationTypeMap.put(Pointcut.class, AspectJAnnotationType.AtPointcut);
 			annotationTypeMap.put(Around.class, AspectJAnnotationType.AtAround);

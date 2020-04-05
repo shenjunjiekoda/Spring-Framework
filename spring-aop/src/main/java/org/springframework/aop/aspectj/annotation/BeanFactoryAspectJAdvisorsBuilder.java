@@ -38,6 +38,7 @@ import org.springframework.util.Assert;
  * @since 2.0.2
  * @see AnnotationAwareAspectJAutoProxyCreator
  */
+//这货是用来构建容器中的@AspectJ的bean滴
 public class BeanFactoryAspectJAdvisorsBuilder {
 
 	private final ListableBeanFactory beanFactory;
@@ -80,38 +81,54 @@ public class BeanFactoryAspectJAdvisorsBuilder {
 	 * @return the list of {@link org.springframework.aop.Advisor} beans
 	 * @see #isEligibleBean
 	 */
+	//构建标注了@Aspect的bean
 	public List<Advisor> buildAspectJAdvisors() {
+		//收集合法的@Aspect bean
 		List<String> aspectNames = this.aspectBeanNames;
 
 		if (aspectNames == null) {
+			//双重检查
 			synchronized (this) {
 				aspectNames = this.aspectBeanNames;
 				if (aspectNames == null) {
 					List<Advisor> advisors = new ArrayList<>();
 					aspectNames = new ArrayList<>();
+					//找到所有的bean的名称
 					String[] beanNames = BeanFactoryUtils.beanNamesForTypeIncludingAncestors(
 							this.beanFactory, Object.class, true, false);
 					for (String beanName : beanNames) {
+						//判断beanName是否合法
 						if (!isEligibleBean(beanName)) {
 							continue;
 						}
 						// We must be careful not to instantiate beans eagerly as in this case they
 						// would be cached by the Spring container but would not have been weaved.
+						//获取class类，如果获取不到就跳过
 						Class<?> beanType = this.beanFactory.getType(beanName);
 						if (beanType == null) {
 							continue;
 						}
+						// 通过class该bean有没有注解@Aspect
 						if (this.advisorFactory.isAspect(beanType)) {
 							aspectNames.add(beanName);
+							// 创建切面类的aspect元信息
 							AspectMetadata amd = new AspectMetadata(beanType, beanName);
 							if (amd.getAjType().getPerClause().getKind() == PerClauseKind.SINGLETON) {
+								// 如果切面的实例化模型是单例的，创建单例模式的工厂类BeanFactoryAspectInstanceFactory实例
+								// AspectInstanceFactory是用于提供AspectJ切面的实例的接口，
+								// 它存在的原因是为了与BeanFactory解耦
 								MetadataAwareAspectInstanceFactory factory =
 										new BeanFactoryAspectInstanceFactory(this.beanFactory, beanName);
+								// 从aspect实例bean工厂解析@Aspect注解类
+								// 其advice方法，构造Spring Advisor,
+								// pointcut 信息 和 advice 信息已经包含在相应的Advisor中
 								List<Advisor> classAdvisors = this.advisorFactory.getAdvisors(factory);
 								if (this.beanFactory.isSingleton(beanName)) {
+									//将单例的aspect bean放入缓存中
 									this.advisorsCache.put(beanName, classAdvisors);
 								}
 								else {
+									//否则直接放实例工厂缓存中
 									this.aspectFactoryCache.put(beanName, factory);
 								}
 								advisors.addAll(classAdvisors);
@@ -122,6 +139,7 @@ public class BeanFactoryAspectJAdvisorsBuilder {
 									throw new IllegalArgumentException("Bean with name '" + beanName +
 											"' is a singleton, but aspect instantiation model is not singleton");
 								}
+								// 获得Prototype的aspect实例工厂类
 								MetadataAwareAspectInstanceFactory factory =
 										new PrototypeAspectInstanceFactory(this.beanFactory, beanName);
 								this.aspectFactoryCache.put(beanName, factory);
@@ -134,10 +152,11 @@ public class BeanFactoryAspectJAdvisorsBuilder {
 				}
 			}
 		}
-
+		//aspect的bean名称都为空的话，看都不用看了
 		if (aspectNames.isEmpty()) {
 			return Collections.emptyList();
 		}
+		//就是将刚那两种缓存的advisor拿出来放到结果return里就完事了
 		List<Advisor> advisors = new ArrayList<>();
 		for (String aspectName : aspectNames) {
 			List<Advisor> cachedAdvisors = this.advisorsCache.get(aspectName);

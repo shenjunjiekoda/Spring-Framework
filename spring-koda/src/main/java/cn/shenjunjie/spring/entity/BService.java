@@ -23,4 +23,13 @@ public class BService {
 		logger.debug("=====BService()空参call=====");
 	}
 
+	public String hello(){
+		return "BService Hello()";
+	}
+
+	public Boolean good(){
+		System.out.println(aService.aaa());
+		return true;
+	}
+
 }
