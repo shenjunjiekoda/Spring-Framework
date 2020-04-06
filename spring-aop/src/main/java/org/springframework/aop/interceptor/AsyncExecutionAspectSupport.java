@@ -115,8 +115,9 @@ public abstract class AsyncExecutionAspectSupport implements BeanFactoryAware {
 	 */
 	public void configure(@Nullable Supplier<Executor> defaultExecutor,
 			@Nullable Supplier<AsyncUncaughtExceptionHandler> exceptionHandler) {
-
+		//提供获得spirng容器中类型或名称为taskExecutor的bean的方法
 		this.defaultExecutor = new SingletonSupplier<>(defaultExecutor, () -> getDefaultExecutor(this.beanFactory));
+		//提供获得默认异常处理器的方法
 		this.exceptionHandler = new SingletonSupplier<>(exceptionHandler, SimpleAsyncUncaughtExceptionHandler::new);
 	}
 
@@ -159,16 +160,19 @@ public abstract class AsyncExecutionAspectSupport implements BeanFactoryAware {
 	 * Should preferably return an {@link AsyncListenableTaskExecutor} implementation.
 	 * @return the executor to use (or {@code null}, but just if no default executor is available)
 	 */
+	//决定当前method用哪个线程池
 	@Nullable
 	protected AsyncTaskExecutor determineAsyncExecutor(Method method) {
 		AsyncTaskExecutor executor = this.executors.get(method);
 		if (executor == null) {
 			Executor targetExecutor;
+			//获取async注解的值有没有指定线程池
 			String qualifier = getExecutorQualifier(method);
 			if (StringUtils.hasLength(qualifier)) {
 				targetExecutor = findQualifiedExecutor(this.beanFactory, qualifier);
 			}
 			else {
+				//获得spring中的线程池bean
 				targetExecutor = this.defaultExecutor.get();
 			}
 			if (targetExecutor == null) {
@@ -178,6 +182,7 @@ public abstract class AsyncExecutionAspectSupport implements BeanFactoryAware {
 					(AsyncListenableTaskExecutor) targetExecutor : new TaskExecutorAdapter(targetExecutor));
 			this.executors.put(method, executor);
 		}
+		//返回就完事了
 		return executor;
 	}
 
@@ -223,6 +228,7 @@ public abstract class AsyncExecutionAspectSupport implements BeanFactoryAware {
 	 * @see #findQualifiedExecutor(BeanFactory, String)
 	 * @see #DEFAULT_TASK_EXECUTOR_BEAN_NAME
 	 */
+	//获得spirng容器中类型或名称为taskExecutor的bean
 	@Nullable
 	protected Executor getDefaultExecutor(@Nullable BeanFactory beanFactory) {
 		if (beanFactory != null) {
@@ -270,6 +276,7 @@ public abstract class AsyncExecutionAspectSupport implements BeanFactoryAware {
 	 */
 	@Nullable
 	protected Object doSubmit(Callable<Object> task, AsyncTaskExecutor executor, Class<?> returnType) {
+		//判断返回值是不是组合型CompletableFuture
 		if (CompletableFuture.class.isAssignableFrom(returnType)) {
 			return CompletableFuture.supplyAsync(() -> {
 				try {
@@ -280,12 +287,15 @@ public abstract class AsyncExecutionAspectSupport implements BeanFactoryAware {
 				}
 			}, executor);
 		}
+		//判断返回值是不是guava的监听ListenableFuture
 		else if (ListenableFuture.class.isAssignableFrom(returnType)) {
 			return ((AsyncListenableTaskExecutor) executor).submitListenable(task);
 		}
+		//最后看是不是普通future
 		else if (Future.class.isAssignableFrom(returnType)) {
 			return executor.submit(task);
 		}
+		//否则就直接做吧，不用返回值了老铁
 		else {
 			executor.submit(task);
 			return null;

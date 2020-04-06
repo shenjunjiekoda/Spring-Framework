@@ -97,6 +97,7 @@ public class AsyncExecutionInterceptor extends AsyncExecutionAspectSupport imple
 	 * @return {@link Future} if the original method returns {@code Future}; {@code null}
 	 * otherwise.
 	 */
+	//最终方法执行的饿时候会调用拦截器的invoke
 	@Override
 	@Nullable
 	public Object invoke(final MethodInvocation invocation) throws Throwable {
@@ -104,14 +105,16 @@ public class AsyncExecutionInterceptor extends AsyncExecutionAspectSupport imple
 		Method specificMethod = ClassUtils.getMostSpecificMethod(invocation.getMethod(), targetClass);
 		final Method userDeclaredMethod = BridgeMethodResolver.findBridgedMethod(specificMethod);
 
+		//决定当前线程池
 		AsyncTaskExecutor executor = determineAsyncExecutor(userDeclaredMethod);
 		if (executor == null) {
 			throw new IllegalStateException(
 					"No executor specified and no default executor set on AsyncExecutionInterceptor either");
 		}
-
+		//创建Callable，判断是否结果是Future决定是否有返回值
 		Callable<Object> task = () -> {
 			try {
+				//执行当前切点的方法
 				Object result = invocation.proceed();
 				if (result instanceof Future) {
 					return ((Future<?>) result).get();
@@ -125,7 +128,8 @@ public class AsyncExecutionInterceptor extends AsyncExecutionAspectSupport imple
 			}
 			return null;
 		};
-
+		//需要的是任务，线程池，和返回值
+		//将任务提交给线程池去做就完事了
 		return doSubmit(task, executor, invocation.getMethod().getReturnType());
 	}
 

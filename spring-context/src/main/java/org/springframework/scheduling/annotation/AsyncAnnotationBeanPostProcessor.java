@@ -141,11 +141,12 @@ public class AsyncAnnotationBeanPostProcessor extends AbstractBeanFactoryAwareAd
 		this.asyncAnnotationType = asyncAnnotationType;
 	}
 
-
+	//async后置处理器初始化advisor和beanFactory
+	//BeafactoryAware回调时获得工厂并创建异步注解的切面
+	//advisor内部会初始化注解切点pointcut和方法增强拦截器advice
 	@Override
 	public void setBeanFactory(BeanFactory beanFactory) {
 		super.setBeanFactory(beanFactory);
-
 		AsyncAnnotationAdvisor advisor = new AsyncAnnotationAdvisor(this.executor, this.exceptionHandler);
 		if (this.asyncAnnotationType != null) {
 			advisor.setAsyncAnnotationType(this.asyncAnnotationType);

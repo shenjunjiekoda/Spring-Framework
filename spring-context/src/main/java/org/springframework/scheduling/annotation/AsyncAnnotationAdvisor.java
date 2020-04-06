@@ -96,15 +96,21 @@ public class AsyncAnnotationAdvisor extends AbstractPointcutAdvisor implements B
 			@Nullable Supplier<Executor> executor, @Nullable Supplier<AsyncUncaughtExceptionHandler> exceptionHandler) {
 
 		Set<Class<? extends Annotation>> asyncAnnotationTypes = new LinkedHashSet<>(2);
+		//将Async加入
 		asyncAnnotationTypes.add(Async.class);
+		//查看有没有引入ejb的异步注解支持
 		try {
+			//试图加载
 			asyncAnnotationTypes.add((Class<? extends Annotation>)
 					ClassUtils.forName("javax.ejb.Asynchronous", AsyncAnnotationAdvisor.class.getClassLoader()));
 		}
 		catch (ClassNotFoundException ex) {
 			// If EJB 3.1 API not present, simply ignore.
 		}
+		//初始化async注解增强器
+		//内部会配置好线程池和异常处理器
 		this.advice = buildAdvice(executor, exceptionHandler);
+		//初始化注解型切点（包括async）
 		this.pointcut = buildPointcut(asyncAnnotationTypes);
 	}
 
@@ -149,8 +155,9 @@ public class AsyncAnnotationAdvisor extends AbstractPointcutAdvisor implements B
 
 	protected Advice buildAdvice(
 			@Nullable Supplier<Executor> executor, @Nullable Supplier<AsyncUncaughtExceptionHandler> exceptionHandler) {
-
+		//初始化异步增强拦截器
 		AnnotationAsyncExecutionInterceptor interceptor = new AnnotationAsyncExecutionInterceptor(null);
+		//获取配置线程池和异常处理器
 		interceptor.configure(executor, exceptionHandler);
 		return interceptor;
 	}

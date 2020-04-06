@@ -61,8 +61,10 @@ public abstract class AbstractAdvisingBeanPostProcessor extends ProxyProcessorSu
 		return bean;
 	}
 
+	//判断是否要代理
 	@Override
 	public Object postProcessAfterInitialization(Object bean, String beanName) {
+		//忽略AOP框架本身的bean
 		if (this.advisor == null || bean instanceof AopInfrastructureBean) {
 			// Ignore AOP infrastructure such as scoped proxies.
 			return bean;
@@ -82,13 +84,17 @@ public abstract class AbstractAdvisingBeanPostProcessor extends ProxyProcessorSu
 			}
 		}
 
+		//检查bean是否合法
 		if (isEligible(bean, beanName)) {
 			ProxyFactory proxyFactory = prepareProxyFactory(bean, beanName);
 			if (!proxyFactory.isProxyTargetClass()) {
 				evaluateProxyInterfaces(bean.getClass(), proxyFactory);
 			}
+			//设置当前的增强器
+			//比如async的增强器就是AsyncAnnotationAdvisor
 			proxyFactory.addAdvisor(this.advisor);
 			customizeProxyFactory(proxyFactory);
+			//生成代理对象
 			return proxyFactory.getProxy(getProxyClassLoader());
 		}
 
