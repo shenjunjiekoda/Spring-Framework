@@ -138,6 +138,10 @@ public class SpringServletContainerInitializer implements ServletContainerInitia
 	 * @see WebApplicationInitializer#onStartup(ServletContext)
 	 * @see AnnotationAwareOrderComparator
 	 */
+	//被web容器启动时调用
+	//例如tomcat会启动时通过类spi机制获得ServletContainerInitializer的实现并去执行ServletContainerInitializer的onStartup
+	//spring会通过spi找到@HandlesTypes中的接口实现类WebApplicationInitializer，注入set方法。
+	//拿到所有的WebApplicationInitializer实现类，只要合法就反射生成实例并依次执行WebApplicationInitializer的onStartUp
 	@Override
 	public void onStartup(@Nullable Set<Class<?>> webAppInitializerClasses, ServletContext servletContext)
 			throws ServletException {
@@ -145,12 +149,14 @@ public class SpringServletContainerInitializer implements ServletContainerInitia
 		List<WebApplicationInitializer> initializers = new LinkedList<>();
 
 		if (webAppInitializerClasses != null) {
+			//通过spi
 			for (Class<?> waiClass : webAppInitializerClasses) {
 				// Be defensive: Some servlet containers provide us with invalid classes,
 				// no matter what @HandlesTypes says...
 				if (!waiClass.isInterface() && !Modifier.isAbstract(waiClass.getModifiers()) &&
 						WebApplicationInitializer.class.isAssignableFrom(waiClass)) {
 					try {
+						//反射生成实例
 						initializers.add((WebApplicationInitializer)
 								ReflectionUtils.accessibleConstructor(waiClass).newInstance());
 					}

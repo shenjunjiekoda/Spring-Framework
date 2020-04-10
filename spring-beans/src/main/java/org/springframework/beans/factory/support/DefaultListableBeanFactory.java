@@ -895,7 +895,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 		// Trigger initialization of all non-lazy singleton beans...
 		for (String beanName : beanNames) {
 			RootBeanDefinition bd = getMergedLocalBeanDefinition(beanName);
-			// bean定义信息中不是抽象类、不是单例并且不是懒加载
+			// bean定义信息中不是抽象类、是单例的并且不是懒加载
 			if (!bd.isAbstract() && bd.isSingleton() && !bd.isLazyInit()) {
 				// 这是Spring提供的对工程bean模式的支持
 				// 比如第三方框架的继承经常采用这种方式

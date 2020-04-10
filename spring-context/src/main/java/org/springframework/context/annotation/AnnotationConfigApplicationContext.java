@@ -104,7 +104,7 @@ public class AnnotationConfigApplicationContext extends GenericApplicationContex
 	 */
 	/**
 	 * 最常用的构造函数，通过将涉及到的配置类(加了@Configuration的类)传递给该构造函数
-	 * 以实现将相应配置类中的Bean自动注册到容器中
+	 * 以实现将相应配置类中的Bean自动注册到容器中，开始容器的生命周期
 	 */
 	public AnnotationConfigApplicationContext(Class<?>... componentClasses) {
 		/**

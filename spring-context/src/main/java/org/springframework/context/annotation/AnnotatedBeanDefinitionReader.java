@@ -287,6 +287,7 @@ public class AnnotatedBeanDefinitionReader {
 				}
 			}
 		}
+		//定制化bean定义的一些附加信息，一般不会有传进来
 		if (customizers != null) {
 			for (BeanDefinitionCustomizer customizer : customizers) {
 				customizer.customize(abd);

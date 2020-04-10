@@ -532,7 +532,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 			// 抽象方法，由子类去决定从哪儿去把Bean定义加载进来，实现有比如：
 			//XmlWebApplicationContext：专为web设计的从xml文件里加载Bean定义（借助XmlBeanDefinitionReader）
 			//ClassPathXmlApplicationContext/FileSystemXmlApplicationContext：均由父类AbstractXmlApplicationContext去实现这个方法的，也是借助XmlBeanDefinitionReader
-			//AnnotationConfigWebApplicationContext：基于注解驱动的容器。（也是当下最流行、最重要的一个实现，前面一篇博文对此有重点分析），借助了AnnotatedBeanDefinitionReader.register()方法加载Bean定义
+			//AnnotationConfigWebApplicationContext：基于注解驱动的容器。，借助了AnnotatedBeanDefinitionReader.register()方法加载Bean定义
 			//(这里面需要注意的是：.register()只是把当前这一个Class对象registry.registerBeanDefinition()了
 			// 至于内部的@Bean、@ComponentScan扫描到的，都不是在此处注册的）
 			// Bean定义资源文件的载入从子类的refreshBeanFactory()方法启动
@@ -744,7 +744,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 
 		// Configure the bean factory with context callbacks.
 		//添加对ApplicationContextAware的后置处理器
-		//使得在Aware接口实现类中的注入applicationContext
+		//使得在Aware接口实现类中的注入applicationContext以及一些重要的spring内部类
 		beanFactory.addBeanPostProcessor(new ApplicationContextAwareProcessor(this));
 		//设置以下这些接口在自动注入时不会注入依赖值
 		//在bean工厂的ignoredDependencyInterfaces属性中添加Aware系列接口
@@ -768,7 +768,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		// Register early post-processor for detecting inner beans as ApplicationListeners.
 		beanFactory.addBeanPostProcessor(new ApplicationListenerDetector(this));
 
-		//如果此时容器中有loadTimeWeaver，添加对loadTimeWeaver处理的bean后置处理器
+		//如果此时容器中有loadTimeWeaver类加载时织入，添加对loadTimeWeaver处理的bean后置处理器
 		// Detect a LoadTimeWeaver and prepare for weaving, if found.
 		if (beanFactory.containsBean(LOAD_TIME_WEAVER_BEAN_NAME)) {
 			beanFactory.addBeanPostProcessor(new LoadTimeWeaverAwareProcessor(beanFactory));
